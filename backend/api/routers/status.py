@@ -13,7 +13,7 @@ from api.schema import ServerStatusSchema, LogFilterOptions
 from api.users import current_active_user, current_super_user
 
 router = APIRouter()
-
+## 用于进行全局查询的方法
 server_status_cache = None
 server_status_cache_last_update_time: datetime | None = None
 

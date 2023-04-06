@@ -5,7 +5,7 @@ from pydantic import Field, BaseModel, validator
 
 from api.enums import ChatStatus, ChatModels
 
-
+## 这里设定了fastapi_users需要的处理类
 class UserRead(schemas.BaseUser[int]):
     id: int
     username: str

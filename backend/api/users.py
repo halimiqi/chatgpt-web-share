@@ -164,5 +164,5 @@ async def current_active_user(user: User = Depends(__current_active_user)):
     finally:
         return user
 
-
+## 这里依赖注入要求检查活跃和管理员
 current_super_user = fastapi_users.current_user(active=True, superuser=True)

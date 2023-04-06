@@ -52,7 +52,8 @@ class CustomJSONResponse(Response):
             background: Optional[BackgroundTask] = None,
     ) -> None:
         super().__init__(content, status_code, headers, media_type, background)
-
+    
+    ## 这里是自定义response必须继承的方法，定义返回生成的bytes文件
     def render(self, content: typing.Any) -> bytes:
         if not isinstance(content, ResponseWrapper):
             content = ResponseWrapper(code=self.status_code, message=get_http_message(self.status_code), result=content)

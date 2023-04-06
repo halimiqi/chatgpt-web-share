@@ -8,11 +8,11 @@ from api.schema import UserRead, UserUpdate, UserCreate, LimitSchema
 from api.users import auth_backend, fastapi_users, current_active_user, get_user_manager_context, current_super_user
 
 from fastapi import APIRouter, Depends
-
+## 后端逻辑 part1 users 相关逻辑
 router = APIRouter()
-
+## 注册登陆组合拳
 router.include_router(
-    fastapi_users.get_auth_router(auth_backend), prefix="/auth", tags=["auth"]
+    fastapi_users.get_auth_router(auth_backend), prefix="/auth", tags=["auth"] ## tags 用于使用文档的分类管理
 )
 
 router.include_router(
@@ -35,11 +35,12 @@ async def get_all_users(_user: User = Depends(current_super_user)):
         results = r.scalars().all()
         return results
 
-
+### 在注册之后还想修改密码的操作
 @router.patch("/user/{user_id}/reset-password", tags=["user"])
 async def reset_password(user_id: int = None, new_password: str = None, _user: User = Depends(current_super_user)):
     if not new_password:
         raise InvalidParamsException("errors.newPasswordRequired")
+    ## 数据库三联操作
     async with get_async_session_context() as session:
         async with get_user_db_context(session) as db:
             async with get_user_manager_context(db) as user_manager:
@@ -70,6 +71,7 @@ async def update_limit(limit: LimitSchema, user_id: int = None, _user: User = De
         return response(200)
 
 
+## 获取个人信息相关页的信息
 router.include_router(
     fastapi_users.get_users_router(UserRead, UserUpdate),
     prefix="/user",

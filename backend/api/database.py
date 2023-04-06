@@ -12,7 +12,7 @@ from alembic.config import Config
 from alembic import command
 
 from api.config import config
-from api.models import Base, User
+from api.models import Base, User, Conversation
 
 from utils.logger import get_logger
 
@@ -24,7 +24,7 @@ async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit
 metadata = sqlalchemy.MetaData()
 alembic_cfg = Config("alembic.ini")
 alembic_cfg.set_main_option("sqlalchemy.url", database_url)
-
+print("the url setting:", database_url)
 
 def run_upgrade(conn, cfg):
     cfg.attributes["connection"] = conn
@@ -44,16 +44,18 @@ def run_ensure_version(conn, cfg):
 async def create_db_and_tables():
     # 如果数据库不存在则创建数据库（数据表）；若有更新，则执行迁移
     # https://alembic.sqlalchemy.org/en/latest/autogenerate.html
-    async with engine.connect() as conn:
+    async with engine.begin() as conn:  ## here should be begin not connect
+        ## if it is connect, then it will only commit by yourself,
+        ## but with begin(), it will commit automatically
         # 判断数据库是否存在
         def use_inspector(conn):
             inspector = sqlalchemy.inspect(conn)
             return inspector.has_table("user")
 
         result = await conn.run_sync(use_inspector)
-
         if not result:
             logger.info("database not exists, creating database...")
+            # await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
             logger.info("database created!")
             await conn.run_sync(run_stamp, alembic_cfg, "head")

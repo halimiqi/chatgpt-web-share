@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
-
+## 这里Depends 是fastapi 依赖注入的方法，可以打包写入一系列的命令参数
 async def get_conversation_by_id(conversation_id: str, user: User = Depends(current_active_user)):
     async with get_async_session_context() as session:
         r = await session.execute(select(Conversation).where(Conversation.conversation_id == conversation_id))
@@ -111,7 +111,7 @@ async def change_conversation_title(title: str, conversation: Conversation = Dep
     result = jsonable_encoder(conversation)
     return result
 
-
+## 管理员为指定用户指定对应的会话ID
 @router.patch("/conv/{conversation_id}/assign/{username}", tags=["conversation"])
 async def assign_conversation(username: str, conversation_id: str, _user: User = Depends(current_super_user)):
     async with get_async_session_context() as session:

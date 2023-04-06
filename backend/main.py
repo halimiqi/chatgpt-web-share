@@ -35,7 +35,7 @@ setup_logger()
 logger = get_logger(__name__)
 
 app = FastAPI(default_response_class=CustomJSONResponse)
-
+## 这里使用了FastAPI的特性，使用include_router可以把不同的逻辑的api放到不同的逻辑中，最终在main.py 里面统一由app变量来管理
 app.include_router(users.router)
 app.include_router(chat.router)
 app.include_router(status.router)
@@ -45,7 +45,7 @@ origins = [
     "http://localhost:4000",
 ]
 
-# 解决跨站问题
+# 解决跨站问题, 这个fastAPI的固定写法，用于解决前后端处于不一致的域名或者是网站的情况
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

@@ -23,6 +23,8 @@ def setup_logger():
     os.makedirs(log_dir, exist_ok=True)
     g.server_log_filename = os.path.join(log_dir, f"{datetime.now().strftime('%Y%m%d_%H-%M-%S')}.log")
     log_config = get_log_config()
+    print(log_config)
+    print('henley')
     logging.config.dictConfig(log_config)
 
 
