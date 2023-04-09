@@ -5,6 +5,7 @@
 </template>
 
 <script setup lang="ts">
+// 这里是初始跳转的页面，从这里根据用户是否登陆进行区分然后跳转，通过router控制，入口函数是这个home.vue
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store';
 

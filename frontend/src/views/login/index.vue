@@ -44,7 +44,8 @@ const loginRules = {
   password: { required: true, message: t("tips.pleaseEnterPassword"), trigger: 'blur' }
 }
 
-const login = async () => {
+// 这里是对应的触发事件 methods
+const login = async () => {   // 这个写法是js的function写法
   if (loading.value) return;
   formRef.value?.validate(async (errors?: Array<FormValidationError>) => {
     if (errors == undefined) {
@@ -54,7 +55,7 @@ const login = async () => {
         const { redirect, ...othersQuery } = router.currentRoute.value.query;
         await userStore.fetchUserInfo();
         Message.success(t('tips.loginSuccess'));
-        await router.push({
+        await router.push({    // 登陆成功跳转其他页面
           name: userStore.user?.is_superuser ? 'admin' : 'conversation'
         });
         // TODO: 记住密码

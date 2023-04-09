@@ -1,10 +1,13 @@
 :80 {
-	handle_path /api/* {
+	handle_path /api/* {  # 将api这个命令下的指令，全部代理到localhost:8000这个端口
 		reverse_proxy localhost:8000
 	}
-	handle /* {
+}
+
+:5111 {
+    handle /* {
 		file_server
-		root * /app/dist
+		root * frontend/dist
 		try_files {path} /index.html
 	}
 }

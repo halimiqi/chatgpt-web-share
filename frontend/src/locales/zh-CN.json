@@ -6,6 +6,8 @@
     "stayInCurrentPage": "留在此页",
     "username": "用户名",
     "password": "密码",
+    "retypePassword": "重复输入密码",
+    "register": "注册",
     "login": "登录",
     "logout": "退出登录",
     "logoutSuccess": "登出成功",

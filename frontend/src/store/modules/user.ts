@@ -1,5 +1,5 @@
 import { getUserInfoApi, loginApi, LoginData, logoutApi } from "@/api/user";
-import { UserRead } from "@/types/schema";
+import { UserCreate, UserRead } from "@/types/schema";
 import { clearCookie } from "@/utils/auth";
 import { defineStore } from "pinia";
 import { UserState } from "../types";
@@ -35,6 +35,15 @@ const useUserStore = defineStore("user", {
     async fetchUserInfo() {
       const result = (await getUserInfoApi()).data;
       this.setInfo(result);
+    },
+    // register
+    async register(registerFrom: UserCreate) {
+      try {
+        await registerApi();
+      } catch (err) {
+        clearCookie();
+        throw err;
+      }
     },
 
     // Login

@@ -19,6 +19,7 @@ export function loginApi(data: LoginData) {
 }
 
 export function registerApi(userInfo: UserCreate) {
+  
   return axios.post<UserRead>(ApiUrl.Register, userInfo);
 }
 

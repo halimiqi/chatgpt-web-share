@@ -7,6 +7,7 @@ import { setLocale } from "@/i18n";
 import { themeRef } from "@/utils/tips";
 
 const useAppStore = defineStore("app", {
+  // pinia用法 这里定义全局变量
   state: (): AppState => ({
     theme: useStorage("theme", osThemeRef.value),
     language: useStorage("language", "zh"),
@@ -18,7 +19,7 @@ const useAppStore = defineStore("app", {
     // },
     // 切换主题
     toggleTheme() {
-      this.theme = this.theme === "dark" ? "light" : "dark";
+      this.theme = this.theme === "dark" ? "light" : "dark";    // 这里的this就是tate
       themeRef.value = this.theme;
     },
     setLanguage(lang: string) {
