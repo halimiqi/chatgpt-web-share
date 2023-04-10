@@ -120,6 +120,8 @@
     "loginExpired": "登录已过期。是否跳转到登录页面？",
     "pleaseEnterUsername": "请输入用户名",
     "pleaseEnterPassword": "请输入密码",
+    "UsernameIllegal": "用户名只能包含数字字母和下划线，必须以字母开头!",
+    "PasswordNotSame": "两次密码不一致",
     "waiting": "正在思考中...",
     "queueing": "正在回复其他用户，排队中...",
     "deleteConversation": "确定要删除该会话吗？",
