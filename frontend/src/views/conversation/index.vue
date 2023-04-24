@@ -134,6 +134,7 @@ import { saveAs } from 'file-saver';
 import HistoryContent from "@/views/conversation/components/HistoryContent.vue";
 
 import {getConvMessageListFromId} from "@/utils/conversation"
+import { tmpdir } from 'os';
 const themeVars = useThemeVars()
 
 const { t } = useI18n();
@@ -161,10 +162,14 @@ const currentAvaliableAskCountsTip = computed(() => {
 const newConversation = ref<ConversationSchema | null>(null);
 const currentConversationId = ref<string | null>(null);
 const currentConversation = computed<ConversationSchema | any>(() => {
+  console.log("henley: begin current!!");
+  console.log("henley: new Cconv!!", newConversation.value);
+  console.log("henley: current conv", currentConversation.value);
   if (newConversation.value?.conversation_id === currentConversationId.value) return newConversation.value;
   const conv = conversationStore.conversations?.find((conversation: ConversationSchema) => {
     return conversation.conversation_id == currentConversationId.value;
   });
+  console.log("henley log: ", conv);
   return conv;
 });
 
@@ -282,6 +287,7 @@ watch(currentConversationId, (newVal, oldVal) => {
 });
 
 const handleChangeConversation = (key: string | null) => {
+  console.log("henley: in handelChangeConversation: conv_id:", key);
   if (loading.value || !key) return;
   loading.value = true;
   LoadingBar.start();
@@ -300,6 +306,9 @@ const sendDisabled = computed(() => {
   return loading.value || currentConversationId.value == null || inputValue.value === null || inputValue.value.trim() == '';
 });
 
+function strEndsWith(str: String, suffix:String) {
+    return str.match(suffix+"$") != null;
+}
 
 const makeNewConversation = () => {
   if (newConversation.value) return;
@@ -310,9 +319,10 @@ const makeNewConversation = () => {
         conversation_id: "new_conversation",
         // 默认标题格式：MMDD - username
         title: title || `New Chat ${new Date().toLocaleString()} - ${userStore.user?.username}`,
-        model_name: model_name || 'text-davinci-002-render-sha',
+        model_name: model_name || 'gpt-3.5-turbo',
         create_time: new Date().toISOString(),  // 仅用于当前排序到顶部
       };
+      // 这里是生成的conversation_id,需要获得
       currentConversationId.value = "new_conversation";
     },
   )
@@ -349,7 +359,7 @@ const sendMsg = async () => {
     askInfo.conversation_id = currentConversation.value!.conversation_id;
     askInfo.parent_id = currentNode.value!;
   }
-
+  
   // 使用临时的随机 id 保持当前更新的两个消息
   const random_strid = Math.random().toString(36).substring(2, 16);
   currentActiveMessageSend.value = {
@@ -362,7 +372,7 @@ const sendMsg = async () => {
   currentActiveMessageRecv.value = {
     id: `recv_${random_strid}`,
     message: '',
-    author_role: 'assistent',
+    author_role: 'assistant',
     parent: `send_${random_strid}`,
     children: [],
     typing: true,
@@ -378,8 +388,9 @@ const sendMsg = async () => {
   };
 
   webSocket.onmessage = (event: MessageEvent) => {
+    console.log("henley event on message:", event.data);
     const reply = JSON.parse(event.data);
-    // console.log('Received message from server:', reply);
+    console.log('Received message from server:', reply);
     if (!reply.type) return;
     if (reply.type === 'waiting') {
       currentActiveMessageRecv.value!.message = t(reply.tip);
@@ -387,12 +398,21 @@ const sendMsg = async () => {
         currentActiveMessageRecv.value!.message += `(${reply.waiting_count})`;
       }
     } else if (reply.type === 'message') {
-      currentActiveMessageRecv.value!.message = reply.message;
-      currentActiveMessageRecv.value!.id = reply.parent_id;
+      if (reply.message_id_list.length >= 2)  {
+        currentActiveMessageRecv.value!.message = reply.message;
+        currentActiveMessageRecv.value!.id = reply.message_id_list.slice(-1);
+        currentActiveMessageRecv.value!.parent = reply.message_id_list.slice(-2);
+        currentActiveMessageSend.value!.id = reply.message_id_list.slice(-2);
+        currentActiveMessageSend.value!.children = [reply.message_id_list.slice(-1)];
+
+      }
+      // currentActiveMessageRecv.value!.message = reply.message;
+      // currentActiveMessageRecv.value!.id = reply.message_id;
       if (newConversation.value) {
         newConversation.value.conversation_id = reply.conversation_id;
         if (currentConversationId.value !== newConversation.value.conversation_id) {
           currentConversationId.value = newConversation.value.conversation_id!;
+          console.log("henley: after asking, it has reset the conversation_id from reply:", newConversation.value.conversation_id);
         }
       }
     } else if (reply.type === 'error') {
@@ -413,6 +433,7 @@ const sendMsg = async () => {
       if (newConversation.value) {
         await conversationStore.fetchAllConversations();
         currentConversationId.value = newConversation.value.conversation_id!;
+        console.log("henley: close websocket, set the conversation_id:", newConversation.value.conversation_id);
         // 解析 ISO string 为 小数时间戳
         const create_time = new Date(newConversation.value.create_time!).getTime() / 1000;
         conversationStore.$patch({
@@ -423,7 +444,7 @@ const sendMsg = async () => {
               model_name: newConversation.value!.model_name,
               create_time,
               mapping: {},
-              current_node: null,
+              current_node: null, // the current message_id
             } as ChatConversationDetail,
           },
         });
@@ -431,9 +452,12 @@ const sendMsg = async () => {
         newConversation.value = null;
       } else {
         // 将新消息存入 store
-        if (!currentActiveMessageRecv.value!.id.startsWith('recv')) {
+        let tmpid = currentActiveMessageRecv.value!.id.toString();
+        if (tmpid.endsWith("2")) {
           // TODO 其它属性
           conversationStore.addMessageToConversation(currentConversationId.value, currentActiveMessageSend.value!, currentActiveMessageRecv.value!);
+        } else {
+          console.log("henley: ERROR: the currentActiveMessageRecv is None will not add message to Conversation");
         }
       }
       currentActiveMessageSend.value = null;

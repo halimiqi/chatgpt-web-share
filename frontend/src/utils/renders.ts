@@ -17,7 +17,7 @@ import { ChatConversationDetail } from "@/types/custom";
 const t = i18n.global.t as any;
 
 const modelNameMap = {
-  "text-davinci-002-render-sha": t("commons.shaModel"),
+  "gpt-3.5-turbo": t("commons.shaModel"),
   "text-davinci-002-render-paid": t("commons.paidModel"),
   "gpt-4": t("commons.gpt4Model"),
 };
@@ -114,7 +114,7 @@ const popupInputDialog = (
 const getAvailableModelOptions = (): SelectOption[] => {
   const userStore = useUserStore();
   let options = [
-    { label: t("commons.shaModel"), value: "text-davinci-002-render-sha" },
+    { label: t("commons.shaModel"), value: "gpt-3.5-turbo" },
   ];
   if (userStore.user?.can_use_paid)
     options.push({

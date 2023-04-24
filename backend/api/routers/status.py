@@ -49,7 +49,7 @@ async def get_status(_user: User = Depends(current_active_user)):
         active_user_in_5m=active_user_in_5m,
         active_user_in_1h=active_user_in_1h,
         active_user_in_1d=active_user_in_1d,
-        is_chatbot_busy=g.chatgpt_manager.is_busy(),
+        is_chatbot_busy=g.chatbot.is_busy(),
         chatbot_waiting_count=queueing_count
     )
     server_status_cache_last_update_time = datetime.utcnow()

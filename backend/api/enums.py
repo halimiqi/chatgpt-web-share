@@ -8,7 +8,14 @@ class ChatStatus(enum.Enum):
 
 
 class ChatModels(enum.Enum):
+    gpt3_5 = "gpt-3.5-turbo"
     gpt4 = "gpt-4"
-    default = "text-davinci-002-render-sha"
+    default = "gpt-3.5-turbo"
     paid = "text-davinci-002-render-paid"
     unknown = ""
+
+class Role(enum.Enum):
+    system = "system"
+    user = "user"
+    assistant = "assistant"
+    

@@ -9,6 +9,7 @@ export function getConvMessageListFromId(conversation_id: string | null) {
   if (!conversation_id) return [];
   const conv: ChatConversationDetail =
     conversationStore.conversationDetailMap[conversation_id];
+    console.log("henley: in getConvMessageListFromId: ", conv);
   if (conv) {
     let x = conv.current_node as any;
     while (!!x) {
@@ -17,6 +18,7 @@ export function getConvMessageListFromId(conversation_id: string | null) {
     }
     result.reverse();
   }
+  console.log("henley: the length of message is:", result.length)
   return result;
 }
 

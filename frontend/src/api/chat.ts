@@ -64,6 +64,7 @@ export function getAskWebsocketApiUrl() {
     // 判断当前是否使用https，如果是则使用wss，否则使用ws
     protocol = window.location.protocol === "https:" ? "wss" : "ws";
   }
+  // 调用对应API
   const url = `${protocol}://${window.location.host}/api${ApiUrl.Conversation}`;
   console.log("getAskWebsocketApiUrl", url);
   return url;

@@ -56,7 +56,7 @@ async def create_db_and_tables():
         if not result:
             logger.info("database not exists, creating database...")
             # await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(Base.metadata.create_all)  ## 添加所有用户
             logger.info("database created!")
             await conn.run_sync(run_stamp, alembic_cfg, "head")
             logger.info(f"stamped database to head")

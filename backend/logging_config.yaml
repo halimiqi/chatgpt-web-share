@@ -28,7 +28,7 @@ root:
   handlers: []
 loggers:
   uvicorn:
-    level: INFO
+    level: WARN
     handlers: [console_handler, file_handler]
   cws:
     level: DEBUG
@@ -37,5 +37,5 @@ loggers:
     level: WARN
     handlers: [console_handler, file_handler]
   alembic:
-    level: INFO
+    level: WARN
     handlers: [console_handler, file_handler]

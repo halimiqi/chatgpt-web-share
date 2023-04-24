@@ -22,12 +22,14 @@ const useConversationStore = defineStore("conversation", {
 
     async fetchConversationHistory(conversation_id: string) {
       // 解析历史记录
+      console.log('henley: enter fetchConversationHistory!!!');
       if (this.conversationDetailMap.hasOwnProperty(conversation_id)) {
+        console.log("henley: conversation store: as OwnProperty")
         return this.conversationDetailMap[conversation_id];
       }
 
       const result = (await getConversationHistoryApi(conversation_id)).data;
-
+      console.log("henley: get ConversationHistory Success!!!", result);
       const conv_detail: ChatConversationDetail = {
         id: conversation_id,
         current_node: result.current_node,
@@ -39,16 +41,17 @@ const useConversationStore = defineStore("conversation", {
 
       for (const message_id in result.mapping) {
         const current_msg = result.mapping[message_id];
+        console.log(current_msg);
         conv_detail.mapping[message_id] = {
           id: message_id,
           parent: current_msg.parent,
           children: current_msg.children,
-          author_role: current_msg.message?.author?.role,
-          model_slug: current_msg.message?.metadata?.model_slug,
-          message: current_msg.message?.content?.parts.join("\n\n"),
+          author_role: current_msg.chats?.role,
+          model_slug: '',
+          message: current_msg.chats?.content,
         } as ChatMessage;
       }
-
+      // patch是批量更新特征
       this.$patch({
         conversationDetailMap: {
           [conversation_id]: conv_detail,

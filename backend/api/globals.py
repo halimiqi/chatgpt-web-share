@@ -1,6 +1,8 @@
-from api.chatgpt import ChatGPTManager
+# from api.chatgpt import ChatGPTManager
+from api.chatmodel import ChatBot
+# chatgpt_manager = ChatGPTManager()
 
-chatgpt_manager = ChatGPTManager()
+chatbot = ChatBot()
 
 reverse_proxy_log_file = None
 

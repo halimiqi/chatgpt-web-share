@@ -9,6 +9,7 @@ from fastapi.encoders import jsonable_encoder
 from httpx import HTTPError
 from sqlalchemy import select, or_, and_, delete, func
 import api.globals as g
+from api.enums import ChatModels, Role
 from api.config import config
 from api.database import get_async_session_context
 from api.enums import ChatStatus, ChatModels
@@ -16,10 +17,11 @@ from api.exceptions import InvalidParamsException, AuthorityDenyException
 from api.models import User, Conversation
 from api.schema import ConversationSchema
 from api.users import current_active_user, websocket_auth, current_super_user
+from api.chatmodel import ChatBot
 from revChatGPT.V1 import Error as ChatGPTError
 from api.response import response
 from utils.logger import get_logger
-
+import uuid
 logger = get_logger(__name__)
 
 router = APIRouter()
@@ -57,20 +59,67 @@ async def get_all_conversations(user: User = Depends(current_active_user), fetch
         results = jsonable_encoder(results)
         return results
 
-
+## get history of the conversation
 @router.get("/conv/{conversation_id}", tags=["conversation"])
 async def get_conversation_history(conversation: Conversation = Depends(get_conversation_by_id)):
-    result = await g.chatgpt_manager.get_conversation_messages(conversation.conversation_id)
+    results, message_id_list = await g.chatbot.get_history_messages(conversation.conversation_id)
+    logger.debug("henley: backend get history messages length {}".format(results))
+    # result = await g.chatgpt_manager.get_conversation_messages(conversation.conversation_id)
     # 当不知道模型名时，顺便从对话中获取
-    if conversation.model_name is None:
-        model_name = result.get("model_name")
-        if model_name is not None and not ChatModels.unknown.value:
-            async with get_async_session_context() as session:
-                conversation = await session.get(Conversation, conversation.id)
-                conversation.model_name = model_name
-                session.add(conversation)
-                await session.commit()
-    return result
+    if results is None:
+        logger.error("the history is None")
+        return response(-1)
+    ## change object to json_object
+    ## form the output format:
+    # const conv_detail: ChatConversationDetail = {
+    #     id: conversation_id,
+    #     current_node: result.current_node,
+    #     title: result.title,
+    #     create_time: result.create_time,
+    #     mapping: {},
+    #     model_name: result.model_name,
+    #   };
+
+    #   for (const message_id in result.mapping) {
+    #     const current_msg = result.mapping[message_id];
+    #     conv_detail.mapping[message_id] = {
+    #       id: message_id,
+    #       parent: current_msg.parent,
+    #       children: current_msg.children,
+    #       author_role: current_msg.message?.author?.role,
+    #       model_slug: current_msg.message?.metadata?.model_slug,
+    #       message: current_msg.message?.content?.parts.join("\n\n"),
+    #     } as ChatMessage;
+    conv_res = {}
+    conv_res["model_name"] = conversation.model_name.value
+    conv_res["title"] = conversation.title
+    conv_res["create_time"] = conversation.create_time
+    mapping_of_message = {}
+    for idx,content in enumerate(results):
+        if content["role"] == Role.system:
+            break
+        if len(results) != len(message_id_list):
+            logger.error("The content and message_id_list should always same length!!")
+            BaseException("The content and the message id list length not same!!!")
+        ## set the parent node and the children node for method!
+        mapping_of_message[message_id_list[idx]] = {}
+        if idx == 0:
+            mapping_of_message[message_id_list[idx]]["parent"] = None
+            mapping_of_message[message_id_list[idx]]["children"] = message_id_list[idx+1:]
+        elif idx == len(results) - 1:
+            mapping_of_message[message_id_list[idx]]["parent"] = message_id_list[idx-1]
+            mapping_of_message[message_id_list[idx]]["children"] = []
+        else:
+            mapping_of_message[message_id_list[idx]]["parent"] = message_id_list[idx-1]
+            mapping_of_message[message_id_list[idx]]["children"] = message_id_list[idx+1:]
+        mapping_of_message[message_id_list[idx]]["chats"] = content
+    conv_res["mapping"] =  mapping_of_message
+    if len(results) >0:
+        conv_res["current_node"] = message_id_list[-1]
+    else:
+        conv_res["current_node"] = None
+    logger.debug("henley: history messages shows on screen: {}".format(conv_res))
+    return conv_res
 
 
 @router.delete("/conv/{conversation_id}", tags=["conversation"])
@@ -86,13 +135,6 @@ async def delete_conversation(conversation: Conversation = Depends(get_conversat
 
 @router.delete("/conv/{conversation_id}/vanish", tags=["conversation"])
 async def vanish_conversation(conversation: Conversation = Depends(get_conversation_by_id)):
-    try:
-        await g.chatgpt_manager.delete_conversation(conversation.conversation_id)
-    except ChatGPTError as e:
-        logger.warning(f"delete conversation {conversation.conversation_id} failed: {e.code} {e.message}")
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code != 404:
-            raise e
     async with get_async_session_context() as session:
         await session.execute(delete(Conversation).where(Conversation.conversation_id == conversation.conversation_id))
         await session.commit()
@@ -101,14 +143,15 @@ async def vanish_conversation(conversation: Conversation = Depends(get_conversat
 
 @router.patch("/conv/{conversation_id}", tags=["conversation"], response_model=ConversationSchema)
 async def change_conversation_title(title: str, conversation: Conversation = Depends(get_conversation_by_id)):
-    await g.chatgpt_manager.set_conversation_title(conversation.conversation_id,
-                                                   title)
+    # await g.chatgpt_manager.set_conversation_title(conversation.conversation_id,
+    #                                                title)
     async with get_async_session_context() as session:
         conversation.title = title
         session.add(conversation)
         await session.commit()
         await session.refresh(conversation)
     result = jsonable_encoder(conversation)
+
     return result
 
 ## 管理员为指定用户指定对应的会话ID
@@ -145,14 +188,10 @@ async def generate_conversation_title(message_id: str, conversation: Conversatio
     if conversation.title is not None:
         raise InvalidParamsException("errors.conversationTitleAlreadyGenerated")
     async with get_async_session_context() as session:
-        result = await g.chatgpt_manager.generate_conversation_title(conversation.id, message_id)
-        if result["title"]:
-            conversation.title = result["title"]
-            session.add(conversation)
-            await session.commit()
-            await session.refresh(conversation)
-        else:
-            raise InvalidParamsException(f"{result['message']}")
+        # result = await g.chatgpt_manager.generate_conversation_title(conversation.id, message_id)
+        result = await g.chatbot.gen_title(conversation.id, conversation)
+        if result is None:
+            raise InvalidParamsException("set title failure")
     result = jsonable_encoder(conversation)
     return result
 
@@ -167,7 +206,7 @@ async def ask(websocket: WebSocket):
     服务端返回格式：{ type, tip, message, conversation_id, parent_id, use_paid, title }
     其中：type 可以为 "waiting" / "message" / "title"
     """
-
+    logger.warning("henleyzhang: begin ask!!!!!!!!!!")
     await websocket.accept()
     user = await websocket_auth(websocket)
     logger.debug(f"{user.username} connected to websocket")
@@ -188,7 +227,10 @@ async def ask(websocket: WebSocket):
     model_name = params.get("model_name")
     timeout = params.get("timeout", 30)  # default 30s
     new_title = params.get("new_title", None)
-
+    logger.debug("henley: message:{}, conversation_id:{}, parent_id:{}, \
+                 model_name:{}, timeout:{}, new_title:{}".format(message,conversation_id,
+                                                                 parent_id, model_name,
+                                                                 timeout, new_title))
     if message is None:
         await websocket.close(1007, "errors.missingMessage")
         return
@@ -202,6 +244,9 @@ async def ask(websocket: WebSocket):
         conversation = await get_conversation_by_id(conversation_id, user)
         model_name = model_name or conversation.model_name
     else:
+        ## create a new conversation_id
+        conversation_id = str(uuid.uuid4())
+        logger.debug("new conv UUID is: {}".format(conversation_id))
         model_name = model_name or ChatModels.default
 
     if isinstance(model_name, str):
@@ -231,7 +276,8 @@ async def ask(websocket: WebSocket):
             await websocket.close(1008, "errors.noAvailableGPT4AskCount")
             return
 
-    if g.chatgpt_manager.is_busy():
+
+    if g.chatbot.is_busy():
         await websocket.send_json({
             "type": "waiting",
             "tip": "tips.queueing"
@@ -243,26 +289,41 @@ async def ask(websocket: WebSocket):
         # 标记用户为 queueing
         await change_user_chat_status(user.id, ChatStatus.queueing)
 
-        async with g.chatgpt_manager.semaphore:
+        # async with g.chatgpt_manager.semaphore:
+        async with g.chatbot.semaphore:
             await change_user_chat_status(user.id, ChatStatus.asking)
             await websocket.send_json({
                 "type": "waiting",
                 "tip": "tips.waiting"
             })
             request_start_time = time.time()
-            async for data in g.chatgpt_manager.ask(message, conversation_id, parent_id, timeout, model_name):
-                reply = {
+            ### 前序操作结束，开始进行问答
+            # async for data in g.chatgpt_manager.ask(message, conversation_id, parent_id, timeout, model_name):
+            #     reply = {
+            #         "type": "message",
+            #         "message": data["message"],
+            #         "conversation_id": data["conversation_id"],
+            #         "parent_id": data["parent_id"],
+            #         "model_name": model_name.value
+            #     }
+            #     await websocket.send_json(reply)
+            #     if conversation_id is None:
+            #         conversation_id = data["conversation_id"]
+            
+            data, content_list, role_list, message_id_list = await g.chatbot.ask(conversation_id, message, model_name)
+            reply = {
                     "type": "message",
-                    "message": data["message"],
-                    "conversation_id": data["conversation_id"],
-                    "parent_id": data["parent_id"],
-                    "model_name": model_name.value
+                    "message": data,
+                    "conversation_id": conversation_id,
+                    "parent_id": None,
+                    "model_name": model_name.value,
+                    "message_id_list": message_id_list
                 }
-                await websocket.send_json(reply)
-                if conversation_id is None:
-                    conversation_id = data["conversation_id"]
+            await websocket.send_json(reply)
+            # if conversation_id is None:
+            #     conversation_id = data["conversation_id"]
             logger.debug(
-                f"finish ask {conversation_id} ({model_name}), using time: {time.time() - request_start_time}s")
+                f"finish ask {conversation_id} ({model_name}), using time: {time.time() - request_start_time}s,answer_content is {data}")
 
             async with get_async_session_context() as session:
                 # 若新建了对话，则添加到数据库
@@ -270,7 +331,8 @@ async def ask(websocket: WebSocket):
                     # 设置默认标题
                     try:
                         if new_title is not None:
-                            await g.chatgpt_manager.set_conversation_title(conversation_id, new_title)
+                            #await g.chatgpt_manager.set_conversation_title(conversation_id, new_title)
+                            await g.chatbot.set_title(new_title, session, conversation_id, conversation)
                     except Exception as e:
                         logger.warning(e)
                     finally:
@@ -286,7 +348,13 @@ async def ask(websocket: WebSocket):
                     if conversation.model_name != model_name:
                         conversation.model_name = model_name
                     session.add(conversation)
-
+                
+                ret = await g.chatbot.save_current_messages(content_list, role_list,message_id_list, user.id, conversation_id, session)
+        
+                if ret.status_code != 201:
+                    logger.error("user:{}, conv_id:{}, has failed message saving on : {}, code:{}".format(user.id, conversation_id,
+                                                                                                 content_list, ret.status_code))
+                logger.debug("henley: save success!!!!")
                 # 扣除一次对话次数
                 # 这里的逻辑是：available_ask_count 是总的对话次数，available_gpt4_ask_count 是 GPT4 的对话次数
                 # 如果都有限制，则都要扣除一次
@@ -301,6 +369,7 @@ async def ask(websocket: WebSocket):
                         user.available_gpt4_ask_count -= 1
                     session.add(user)
                 await session.commit()
+                logger.debug("henley: change user status success!!!!")
             websocket_code = 1000
             websocket_reason = "tips.finished"
     except requests.exceptions.Timeout:
@@ -338,5 +407,5 @@ async def ask(websocket: WebSocket):
         websocket_reason = "errors.unknownError"
     finally:
         await change_user_chat_status(user.id, ChatStatus.idling)
-        g.chatgpt_manager.reset_chat()
+        ## g.chatgpt_manager.reset_chat()
         await websocket.close(websocket_code, websocket_reason)

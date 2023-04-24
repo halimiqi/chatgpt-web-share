@@ -1,4 +1,4 @@
-import { getUserInfoApi, loginApi, LoginData, logoutApi } from "@/api/user";
+import { getUserInfoApi, loginApi, LoginData, logoutApi, registerApi } from "@/api/user";
 import { UserCreate, UserRead } from "@/types/schema";
 import { clearCookie } from "@/utils/auth";
 import { defineStore } from "pinia";
@@ -39,7 +39,7 @@ const useUserStore = defineStore("user", {
     // register
     async register(registerFrom: UserCreate) {
       try {
-        await registerApi();
+        await registerApi(registerFrom);
       } catch (err) {
         clearCookie();
         throw err;

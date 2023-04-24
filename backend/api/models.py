@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 
-from api.enums import ChatStatus, ChatModels
+from api.enums import ChatStatus, ChatModels, Role
 
 
 # declarative base class
@@ -60,3 +60,21 @@ class Conversation(Base):
         Enum(ChatModels, values_callable=lambda obj: [e.value for e in obj] if obj else None), default=None, comment="使用的模型")
     create_time: Mapped[Optional[DateTime]] = mapped_column(DateTime, default=None, comment="创建时间")
     active_time: Mapped[Optional[DateTime]] = mapped_column(DateTime, default=None, comment="最后活跃时间")
+    messages: Mapped[List["Message"]] = relationship("Message", backref="conversation")
+
+class Message(Base):
+    """
+    信息表
+    """
+    __tablename__ = "message"
+    id: Mapped[int] = mapped_column(Integer, primary_key = True)
+    message_id: Mapped[str] = mapped_column(String(37), index=True, unique=True, comment = "用于识别的UUID,最后一位表示role:0-system 1-user 2-assistant")
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id"), comment = "对应的用户ID")
+    conv_id: Mapped[Optional[str]] = mapped_column(ForeignKey("conversation.conversation_id"), comment = "对应的对话UUID")
+    role: Mapped[Optional[Enum["Role"]]] = mapped_column(
+        Enum(Role, values_callable=lambda obj: [e.value for e in obj] if obj else None), default=None, comment="对话对应的角色")
+    text: Mapped[Optional[str]] = mapped_column(String, comment = "发送的信息")
+    status: Mapped[bool] = mapped_column(Boolean, default = False)
+    create_time: Mapped[Optional[DateTime]] = mapped_column(DateTime, default = None, comment = "消息发送时间")
+    
+

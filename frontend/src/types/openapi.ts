@@ -54,7 +54,7 @@ export interface paths {
   "/conv": {
     /**
      * Get All Conversations 
-     * @description 对于普通用户，返回其自己的有效会话
+     * @description 返回自己的有效会话
      * 对于管理员，返回所有对话，并可以指定是否只返回有效会话
      */
     get: operations["get_all_conversations_conv_get"];
@@ -135,7 +135,7 @@ export interface components {
      * @description An enumeration. 
      * @enum {unknown}
      */
-    ChatModels: "gpt-4" | "text-davinci-002-render-sha" | "text-davinci-002-render-paid" | "";
+    ChatModels: "gpt-3.5-turbo" | "gpt-4" | "text-davinci-002-render-paid" | "";
     /**
      * ChatStatus 
      * @description An enumeration. 
@@ -345,8 +345,8 @@ export type external = Record<string, never>;
 
 export interface operations {
 
+  /** Auth:Jwt.Login */
   auth_jwt_login_auth_login_post: {
-    /** Auth:Jwt.Login */
     requestBody: {
       content: {
         "application/x-www-form-urlencoded": components["schemas"]["Body_auth_jwt_login_auth_login_post"];
@@ -373,8 +373,8 @@ export interface operations {
       };
     };
   };
+  /** Auth:Jwt.Logout */
   auth_jwt_logout_auth_logout_post: {
-    /** Auth:Jwt.Logout */
     responses: {
       /** @description Successful Response */
       200: {
@@ -386,8 +386,8 @@ export interface operations {
       401: never;
     };
   };
+  /** Reset:Forgot Password */
   reset_forgot_password_auth_forgot_password_post: {
-    /** Reset:Forgot Password */
     requestBody: {
       content: {
         "application/json": components["schemas"]["Body_reset_forgot_password_auth_forgot_password_post"];
@@ -408,8 +408,8 @@ export interface operations {
       };
     };
   };
+  /** Reset:Reset Password */
   reset_reset_password_auth_reset_password_post: {
-    /** Reset:Reset Password */
     requestBody: {
       content: {
         "application/json": components["schemas"]["Body_reset_reset_password_auth_reset_password_post"];
@@ -436,8 +436,8 @@ export interface operations {
       };
     };
   };
+  /** Register:Register */
   register_register_auth_register_post: {
-    /** Register:Register */
     requestBody: {
       content: {
         "application/json": components["schemas"]["UserCreate"];
@@ -464,8 +464,8 @@ export interface operations {
       };
     };
   };
+  /** Get All Users */
   get_all_users_user_get: {
-    /** Get All Users */
     responses: {
       /** @description Successful Response */
       200: {
@@ -475,10 +475,10 @@ export interface operations {
       };
     };
   };
+  /** Reset Password */
   reset_password_user__user_id__reset_password_patch: {
-    /** Reset Password */
     parameters: {
-      query?: {
+      query: {
         new_password?: string;
       };
       path: {
@@ -500,8 +500,8 @@ export interface operations {
       };
     };
   };
+  /** Update Limit */
   update_limit_user__user_id__limit_post: {
-    /** Update Limit */
     parameters: {
       path: {
         user_id: number;
@@ -527,8 +527,8 @@ export interface operations {
       };
     };
   };
+  /** Users:Current User */
   users_current_user_user_me_get: {
-    /** Users:Current User */
     responses: {
       /** @description Successful Response */
       200: {
@@ -540,8 +540,8 @@ export interface operations {
       401: never;
     };
   };
+  /** Users:Patch Current User */
   users_patch_current_user_user_me_patch: {
-    /** Users:Patch Current User */
     requestBody: {
       content: {
         "application/json": components["schemas"]["UserUpdate"];
@@ -570,8 +570,8 @@ export interface operations {
       };
     };
   };
+  /** Users:User */
   users_user_user__id__get: {
-    /** Users:User */
     parameters: {
       path: {
         id: Record<string, never>;
@@ -598,8 +598,8 @@ export interface operations {
       };
     };
   };
+  /** Users:Delete User */
   users_delete_user_user__id__delete: {
-    /** Users:Delete User */
     parameters: {
       path: {
         id: Record<string, never>;
@@ -622,8 +622,8 @@ export interface operations {
       };
     };
   };
+  /** Users:Patch User */
   users_patch_user_user__id__patch: {
-    /** Users:Patch User */
     parameters: {
       path: {
         id: Record<string, never>;
@@ -661,15 +661,15 @@ export interface operations {
       };
     };
   };
+  /**
+   * Get All Conversations 
+   * @description 返回自己的有效会话
+   * 对于管理员，返回所有对话，并可以指定是否只返回有效会话
+   */
   get_all_conversations_conv_get: {
-    /**
-     * Get All Conversations 
-     * @description 对于普通用户，返回其自己的有效会话
-     * 对于管理员，返回所有对话，并可以指定是否只返回有效会话
-     */
-    parameters?: {
-      query?: {
-        valid_only?: boolean;
+    parameters: {
+      query: {
+        fetch_all?: boolean;
       };
     };
     responses: {
@@ -687,8 +687,8 @@ export interface operations {
       };
     };
   };
+  /** Get Conversation History */
   get_conversation_history_conv__conversation_id__get: {
-    /** Get Conversation History */
     parameters: {
       path: {
         conversation_id: string;
@@ -709,8 +709,8 @@ export interface operations {
       };
     };
   };
+  /** Delete Conversation */
   delete_conversation_conv__conversation_id__delete: {
-    /** Delete Conversation */
     parameters: {
       path: {
         conversation_id: string;
@@ -731,8 +731,8 @@ export interface operations {
       };
     };
   };
+  /** Change Conversation Title */
   change_conversation_title_conv__conversation_id__patch: {
-    /** Change Conversation Title */
     parameters: {
       query: {
         title: string;
@@ -756,8 +756,8 @@ export interface operations {
       };
     };
   };
+  /** Vanish Conversation */
   vanish_conversation_conv__conversation_id__vanish_delete: {
-    /** Vanish Conversation */
     parameters: {
       path: {
         conversation_id: string;
@@ -778,8 +778,8 @@ export interface operations {
       };
     };
   };
+  /** Assign Conversation */
   assign_conversation_conv__conversation_id__assign__username__patch: {
-    /** Assign Conversation */
     parameters: {
       path: {
         username: string;
@@ -801,8 +801,8 @@ export interface operations {
       };
     };
   };
+  /** Generate Conversation Title */
   generate_conversation_title_conv__conversation_id__gen_title_patch: {
-    /** Generate Conversation Title */
     parameters: {
       query: {
         message_id: string;
@@ -826,8 +826,8 @@ export interface operations {
       };
     };
   };
+  /** Get Status */
   get_status_status_get: {
-    /** Get Status */
     responses: {
       /** @description Successful Response */
       200: {
@@ -837,8 +837,8 @@ export interface operations {
       };
     };
   };
+  /** Get Proxy Logs */
   get_proxy_logs_logs_proxy_post: {
-    /** Get Proxy Logs */
     requestBody?: {
       content: {
         "application/json": components["schemas"]["LogFilterOptions"];
@@ -859,8 +859,8 @@ export interface operations {
       };
     };
   };
+  /** Get Server Logs */
   get_server_logs_logs_server_post: {
-    /** Get Server Logs */
     requestBody?: {
       content: {
         "application/json": components["schemas"]["LogFilterOptions"];
